@@ -1,47 +1,32 @@
 ---
 sidebar_position: 1
 ---
+# Starting
 
-# Tutorial Intro
+To read and understand Redis source code, follow these steps:
 
-Let's discover **Docusaurus in less than 5 minutes**.
+1. Familiarize yourself with C: Redis is written in ANSI C, so having a good understanding of the C programming language is essential.
 
-## Getting Started
+2. Clone the repository: Clone the Redis repository from GitHub using the command `git clone https://github.com/redis/redis.git`. This will give you the latest version of the source code.
 
-Get started by **creating a new site**.
+3. Understand the project structure: The Redis source code is organized into several folders, such as `src`, `deps`, and `tests`. The main source code files are located in the `src` folder.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+4. Start with the main file: Open the `src/server.c` file. This is the main file of the Redis server and contains the `main()` function. It initializes the server, sets up the event loop, and starts the server.
 
-### What you'll need
+5. Explore important components:
 
-- [Node.js](https://nodejs.org/en/download/) version 16.14 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+   a. Event loop: Examine `src/ae.c` and `src/ae.h` to understand the event loop implementation, which is crucial for Redis' non-blocking I/O and handling client connections.
+   
+   b. Networking: Review `src/anet.c` and `src/anet.h` to understand how Redis handles network connections, including socket creation, binding, and listening.
+   
+   c. Data structures: Study `src/sds.c` and `src/sds.h` for the simple dynamic string implementation, and `src/adlist.c` and `src/adlist.h` for the linked list implementation. These are fundamental to Redis' data structures.
+   
+   d. Commands: Check `src/server.h` for the `redisCommand` struct and `src/server.c` for the command table. These define the commands that Redis supports.
+   
+   e. Databases and data types: Explore `src/db.c` and `src/db.h` to understand the key-value store implementation, as well as `src/t_string.c`, `src/t_list.c`, `src/t_set.c`, `src/t_zset.c`, and `src/t_hash.c` for the different data types Redis supports.
 
-## Generate a new site
+6. Read the documentation: The Redis source code has extensive comments that explain the functionality of different components. Make sure to read these comments to gain a deeper understanding of the code.
 
-Generate a new Docusaurus site using the **classic template**.
+7. Debug and experiment: Compile and run Redis locally, and use a debugger (e.g., gdb) to step through the code. Modify the code and observe the effects to better understand how the different components interact.
 
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
-```
-
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+8. Participate in the community: Join the Redis mailing list, follow the GitHub repository, and participate in discussions to learn from other developers and stay up-to-date with the latest developments in Redis.
