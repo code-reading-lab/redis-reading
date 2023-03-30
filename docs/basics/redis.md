@@ -3,7 +3,7 @@ sidebar_position: 1
 ---
 
 
-# Redis
+# Redis FAQ
 
 ## Redis中哪些地方使用了算法
 Redis 使用了很多算法来解决不同的问题，以下是一些常见的算法及其应用：

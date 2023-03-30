@@ -76,7 +76,7 @@ const config = {
             position: 'left',
             label: 'Starting',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
+          { to: '/blog', label: 'Blog', position: 'left' },
           {
             href: 'https://github.com/code-reading-lab/redis-reading',
             label: 'GitHub',
