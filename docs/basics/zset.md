@@ -2,8 +2,8 @@
 sidebar_position: 9
 ---
 
-# Redis源码分析 zskiplist.c
-`zskiplist.c` 文件实现了 Redis 中跳跃表的数据结构和相关函数，其中的跳跃表结构体定义如下：
+# Redis源码分析 zset.c
+`zset.c` 文件实现了 Redis zset的数据结构和相关函数，其中的跳跃表结构体定义如下：
 ## 数据结构分析
 
 ```c
