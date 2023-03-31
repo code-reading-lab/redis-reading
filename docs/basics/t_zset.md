@@ -2,9 +2,13 @@
 sidebar_position: 9
 ---
 
-# Redis源码分析 zset.c
-`zset.c` 文件实现了 Redis zset的数据结构和相关函数，其中的跳跃表结构体定义如下：
+# Redis源码分析 t_zset.c
+在 Redis 源码库中，跳跃表的实现可以在 "server.h" 和 "t_zset.c" 文件中找到。
+
 ## 数据结构分析
+server.h: 这个文件定义了跳跃表节点和跳跃表数据结构。跳跃表结构包括头指针、尾指针、长度和层级。跳跃表节点包括键、分数、向前指针和向后指针。
+[链接](https://github.com/redis/redis/blob/7.2/src/server.h)
+在 server.h 中，跳跃表的定义部分如下：
 
 ```c
 typedef struct zskiplistNode {
@@ -47,6 +51,21 @@ typedef struct zskiplist {
 
 ## 实现细节
 Redis 中跳跃表的实现非常复杂，包括节点的插入、删除、查找等操作，还包括跳跃表层数的动态调整等。
+
+以下是相关源代码文件的摘要和链接：
+
+t_zset.c: 这个文件包含了跳跃表的各种操作，如插入、删除、查找等。[t_zset.c](https://github.com/redis/redis/blob/7.2/src/t_zset.c)
+在 t_zset.c 中，你可以找到以下跳跃表操作的实现：
+- zslCreate (创建跳跃表)
+- zslFree (释放跳跃表)
+- zslInsert (插入节点)
+- zslDelete (删除节点)
+- zslFind (查找节点)
+- zslGetRank (获取节点的排名)
+- zslDeleteRangeByScore (根据分数范围删除节点)
+- zslDeleteRangeByRank (根据排名范围删除节点)
+
+
 
 
 ## 跨度和随机生成层数
