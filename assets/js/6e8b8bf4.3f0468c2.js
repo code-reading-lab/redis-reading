@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkredis_reading=self.webpackChunkredis_reading||[]).push([[7703],{5036:e=>{e.exports=JSON.parse('{"label":"tcp","permalink":"/redis-reading/blog/tags/tcp","allTagsPath":"/redis-reading/blog/tags","count":1}')}}]);

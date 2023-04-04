@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkredis_reading=self.webpackChunkredis_reading||[]).push([[6535],{2965:e=>{e.exports=JSON.parse('{"permalink":"/redis-reading/blog/tags/ae","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"blogDescription":"Blog","blogTitle":"Blog"}')}}]);
