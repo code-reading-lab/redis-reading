@@ -4,64 +4,117 @@ sidebar_position: 7
 
 # Redis源码阅读 server.c
 
-server.c是Redis服务器的主要源文件，包含了Redis服务器的主函数和主要逻辑。在这个文件中，我们可以了解Redis服务器的启动过程、命令处理过程、事件循环过程等。
+在分析Redis源码时，首先要了解Redis是什么。Redis（Remote Dictionary Server）是一个高性能的键值存储数据库。它支持多种数据结构，如字符串、哈希、列表、集合、有序集合等，并提供持久化、事务和Lua脚本等功能。Redis的源码是用C语言编写的，源码库托管在GitHub上。
 
-以下是server.c文件的主要代码结构和功能：
+`server.c` 是Redis源码中的一个核心文件，它包含了Redis服务的主要功能和逻辑。为了帮助你更好地理解`server.c`，下面将对其主要组成部分进行概述：
+
+1.  包含的头文件和全局变量定义：在文件的开头，有许多包含的头文件和全局变量定义，这些头文件和变量为Redis的各种功能提供了支持。
+    
+2.  辅助函数：在`server.c`中有许多辅助函数，这些函数主要用于完成一些特定的任务，如字符串操作、时间操作、内存管理等。
+    
+3.  事件处理：Redis使用事件驱动模型处理客户端连接、读写请求和超时等事件。`server.c`包含了处理这些事件的相关代码，如创建事件循环、添加/删除事件处理器等。
+    
+4.  命令处理：`server.c`包含了命令处理的相关代码，如命令表的初始化、命令查找、参数解析等。Redis支持的每个命令都有一个对应的处理函数，这些函数负责处理命令的逻辑并将结果发送给客户端。
+    
+5.  网络连接管理：`server.c`负责管理Redis服务端与客户端之间的网络连接，包括创建/关闭连接、读写数据等操作。
+    
+6.  客户端管理：`server.c`包含了客户端管理的相关代码，如客户端结构体的定义、客户端列表的管理、客户端的创建/销毁等操作。
+    
+7.  数据库操作：`server.c`包含了Redis数据库操作的相关代码，如数据库的初始化、键值对的读写、过期时间的处理等。
+    
+8.  持久化：Redis支持两种持久化方式，RDB（快照）和AOF（追加写日志）。`server.c`包含了与持久化相关的代码，如RDB/AOF文件的创建/加载、数据的保存/恢复等。
+    
+9.  主从复制：Redis支持主从复制功能，`server.c`包含了与主从复制相关的代码，如主从连接的建立、数据同步等。
+    
+10.  Sentinel 和集群：Redis支持Sentinel和集群模式，`server.c`包含了与这些模式相关的代码，如Sentinel/集群状态的管理、节点的发现和选举等。
+    
+11.  启动和初始化：`server.c`的最后部分包含了Redis服务的启动和初始化代码。这里定义了`main()`函数，这是Redis服务的入口点。
+  
+在`main()`函数中，会进行一系列的初始化操作，包括：
+main()函数，这是Redis服务的入口点。在main()函数中，会进行一系列的初始化操作，包括：
+a. 解析命令行参数：main()函数首先解析从命令行传入的参数，如配置文件路径、日志级别、端口号等。
+b. 读取配置文件：根据命令行参数指定的配置文件路径，读取并解析配置文件，设置相关的配置选项。
+c. 初始化服务器状态：初始化服务器状态结构体，包括事件循环、数据库、客户端列表等。
+d. 初始化命令表：Redis支持的所有命令都需要在命令表中进行注册。main()函数会调用一个初始化函数来完成这个任务。
+e. 设置信号处理器：为了确保Redis服务在接收到特定信号时能够正确响应，需要为这些信号设置处理器。
+f. 加载持久化数据：如果配置了RDB或AOF持久化，main()函数会尝试从磁盘加载数据到内存数据库中。
+g. 启动事件循环：最后，main()函数会启动事件循环，处理客户端连接、读写请求、超时等事件。
+h. 清理和退出：当Redis服务收到退出信号时，main()函数会进行一系列清理操作，如关闭客户端连接、释放内存资源等，然后退出程序。
+
+
 
 ## 头文件引用
 
 首先，server.c文件会引用多个头文件，包含了Redis服务器所需的数据类型、宏定义、全局变量等。一些常用的头文件如下：
 
 ```c
-#include "redis.h"          // Redis的主头文件，包含Redis的核心库和数据类型。
-
-#include "adlist.h"         // Redis的链表数据类型库。
-
-#include "bio.h"            // Redis的异步I/O库。
-
-#include "debugmacro.h"     // Redis的调试宏定义库。
-
-#include "cluster.h"        // Redis的集群库。
-
-#include "crc16.h"          // Redis的CRC16校验和库。
-
-#include "endianconv.h"     // Redis的大小端转换库。
-
-#include "latency.h"        // Redis的延迟日志库。
-
-#include "lzf.h"            // Redis的LZF压缩库。
-
-#include "pqsort.h"         // Redis的快速排序库。
-
-#include "quicklist.h"      // Redis的快速链表库。
-
-#include "rand.h"           // Redis的随机数库。
-
-#include "sha1.h"           // Redis的SHA1哈希库。
-
-#include "sds.h"            // Redis的简单动态字符串库。
-
-#include "slowlog.h"        // Redis的慢查询日志库。
-
-#include "zmalloc.h"        // Redis的内存管理库。
-```
-
-## 全局变量定义
-
-接下来，server.c文件会定义多个全局变量，包含了Redis服务器的状态信息、配置信息、数据库信息等。一些常用的全局变量如下：
-```c
-struct redisServer server;          // Redis服务器的状态信息。
-
-struct redisCommand *commandTable;  // Redis服务器的命令表。
-
-struct redisClient **clients;       // Redis服务器的客户端数组。
-
-struct redisDb *redisDb;            // Redis服务器的数据库数组。
-
-struct rax *server.commands;        // Redis服务器的命令字典。
+#include "server.h"           // 包含Redis服务器的主要结构体和函数声明
+#include "atomicvar.h"        // 提供了对原子操作的封装
+#include "cluster.h"          // 包含Redis集群相关的结构体和函数声明
+#include "db.h"               // 包含Redis数据库操作相关的结构体和函数声明
+#include "object.h"           // 包含Redis对象系统的数据结构和函数声明
+#include "rdb.h"              // 包含RDB持久化相关的结构体和函数声明
+#include "t_string.h"         // 包含处理Redis字符串对象的函数声明
+#include "t_list.h"           // 包含处理Redis列表对象的函数声明
+#include "t_set.h"            // 包含处理Redis集合对象的函数声明
+#include "t_zset.h"           // 包含处理Redis有序集合对象的函数声明
+#include "t_hash.h"           // 包含处理Redis哈希对象的函数声明
+#include "slowlog.h"          // 包含慢查询日志相关的结构体和函数声明
+#include "bio.h"              // 包含后台I/O（Background I/O）相关的结构体和函数声明
+#include "aof.h"              // 包含AOF持久化相关的结构体和函数声明
+#include "lazyfree.h"         // 包含延迟释放内存相关的函数声明
+#include "tracking.h"         // 包含客户端缓存跟踪相关的函数声明
+#include "networking.h"       // 包含网络处理相关的结构体和函数声明
+#include "pubsub.h"           // 包含发布订阅模式相关的结构体和函数声明
+#include "module.h"           // 包含Redis模块系统相关的结构体和函数声明
+#include "scripting.h"        // 包含Lua脚本执行相关的结构体和函数声明
+#include "blocked.h"          // 包含阻塞客户端相关的结构体和函数声明
+#include "evict.h"            // 包含键值对逐出策略相关的函数声明
+#include "quicklist.h"        // 包含quicklist数据结构及相关操作函数声明
+#include "rax.h"              // 包含rax字典数据结构及相关操作函数声明
+#include "sentinel.h"         // 包含Redis Sentinel相关的结构体和函数声明
 ```
 
 ## 数据结构
+
+以下是`server.c`中主要数据结构的代码表示，以及中文注释：
+
+1. `redisServer` 结构体
+
+```c
+typedef struct redisServer {
+    // ...
+    redisDb *db;                    /* 数据库数组 */
+    dict *commands;                 /* 命令表 */
+    dict *orig_commands;            /* 模块系统修改前的原始命令表 */
+    aeEventLoop *el;                /* 事件循环，处理客户端连接、读写请求、超时等事件 */
+    list *clients;                  /* 已连接客户端列表 */
+    list *slaves;                   /* 已连接从服务器列表 */
+    list *monitors;                 /* 监控客户端列表 */
+    int hz;                         /* 服务器每秒执行的事件循环次数 */
+    char *rdb_filename;             /* RDB文件名 */
+    char *aof_filename;             /* AOF文件名 */
+    // ...
+} redisServer;
+```
+
+2. `client` 结构体
+
+```c
+typedef struct client {
+    uint64_t id;                    /* 客户端唯一标识符 */
+    int fd;                         /* 客户端连接的文件描述符 */
+    sds name;                       /* 客户端名称 */
+    sds querybuf;                   /* 查询缓冲区，保存客户端发送的命令 */
+    int argc;                       /* 命令参数个数 */
+    robj **argv;                    /* 命令参数数组 */
+    struct redisCommand *cmd;       /* 当前正在处理的命令 */
+    time_t lastinteraction;         /* 客户端最后一次与服务器交互的时间 */
+    int flags;                      /* 客户端标志位 */
+    // ...
+} client;
+```
+
 **redisObject**
 redisObject 是一个通用的数据结构，用于表示 Redis 中的所有数据类型。redisObject 结构体定义在 server.h 文件中，其包含的成员变量如下：
 ```c
@@ -143,19 +196,12 @@ void populateCommandTable(void) {
 在Redis服务器启动后，server.c文件中会进入一个事件循环，用于处理客户端请求和其他事件。事件循环的主要实现如下：
 ```c
 void aeMain(aeEventLoop *eventLoop) {
-
-    eventLoop->stop = 0;
-
-    while (!eventLoop->stop) {
-
-        if (eventLoop->beforesleep != NULL)
-
-            eventLoop->beforesleep(eventLoop);
-
-        aeProcessEvents(eventLoop, AE_ALL_EVENTS);
-
-    }
-
+    eventLoop->stop = 0;
+    while (!eventLoop->stop) {
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|
+                                   AE_CALL_BEFORE_SLEEP|
+                                   AE_CALL_AFTER_SLEEP);
+    }
 }
 ```
 
@@ -174,129 +220,30 @@ void aeMain(aeEventLoop *eventLoop) {
 停止Redis服务器的事件循环，并释放资源。
 
 
-## main函数流程解析
+## Redis的启动流程
+
+Redis的启动流程可以概括为以下几个步骤：
+
+1.  初始化： 在`main()`函数中，Redis首先执行一系列的初始化操作，包括分配和初始化`redisServer`结构体、设置默认配置参数等。
+    
+2.  解析命令行参数： Redis会解析从命令行传入的参数，例如配置文件路径、日志级别、端口号等。
+    
+3.  读取配置文件： 根据命令行参数指定的配置文件路径，读取并解析配置文件，设置相关的配置选项。
+    
+4.  初始化数据结构： 初始化服务器状态结构体，包括事件循环、数据库、客户端列表等。同时，初始化命令表，注册所有Redis支持的命令。
+    
+5.  设置信号处理器： 为了确保Redis服务在接收到特定信号时能够正确响应，需要为这些信号设置处理器。
+    
+6.  启动服务器端口监听： 根据配置文件中指定的端口号，启动服务器端口监听，以便接受来自客户端的连接请求。
+    
+7.  加载持久化数据： 如果配置了RDB或AOF持久化，Redis会尝试从磁盘加载数据到内存数据库中。
+    
+8.  初始化集群和Sentinel： 如果配置了Redis集群或Sentinel模式，执行相应的初始化操作。
+    
+9.  启动事件循环： 最后，Redis启动事件循环，处理客户端连接、读写请求、超时等事件。
+    
+10.  清理和退出： 当Redis服务收到退出信号时，`main()`函数会进行一系列清理操作，如关闭客户端连接、释放内存资源等，然后退出程序。
+    
+
+通过以上步骤，Redis会成功启动并开始接收来自客户端的请求。要深入了解Redis的启动流程和实现细节，请阅读源代码中的`main()`函数以及相关函数。
 
-- 初始化服务器状态
-
-  在 main 函数中，首先会调用 initServerConfig 函数初始化服务器的配置信息，包括端口号、数据库数量、最大客户端连接数等。然后，通过调用 initServer 函数初始化服务器的状态信息，包括命令表、事件循环、共享对象等。
-
-- 解析命令行参数
-  接下来，main 函数会调用 parseOptions 函数解析命令行参数，包括配置文件路径、后台运行等选项。如果解析成功，则会更新服务器的配置信息。
-
-
-
-- 加载持久化数据
-
-
-  如果服务器配置了持久化功能，则会在 main 函数中调用 loadServerConfig 函数加载持久化数据。该函数会根据服务器配置信息选择适当的持久化方式（RDB 或 AOF），并将数据加载到内存中。
-
-
-
-- 启动服务器
-
-
-  在完成以上初始化工作后，main 函数会调用 serverCron 函数启动服务器的事件循环。serverCron 函数会循环等待客户端连接和其他事件，并处理这些事件。如果服务器接收到 SIGINT 或 SIGTERM 信号，则会调用 shutdownServer 函数停止服务器。
-
-
-
-- 退出服务器
-
-
-  当服务器停止后，main 函数会调用 serverLog 函数输出日志信息，然后调用 freeMemoryIfNeeded 函数释放服务器申请的内存。最后，main 函数会返回 0，表示程序正常退出。
-
-
-  总之，server.c 中的 main 函数主要完成了服务器的初始化、命令行参数解析、持久化数据加载、事件循环启动等任务。在 main 函数的最后，服务器状态会被释放，程序退出。
-
-struct redisServer 是 Redis 服务器的状态结构体，用于记录服务器的各种状态和参数。以下是一些 redisServer 结构体的重要成员变量及其作用：
-
-```c
-
-int hz：事件循环的执行频率，即每秒执行多少次事件循环。
-
-
-redisDb *db：指向 Redis 数据库的指针。
-
-
-dict *commands：Redis 所支持的所有命令的字典表，每个命令对应一个 redisCommand 结构体。
-
-
-aeEventLoop *el：事件循环库的事件循环结构体。
-
-
-pid_t pid：Redis 服务器的进程 ID。
-
-
-int port：Redis 服务器的端口号。
-
-
-char *bindaddr[MAXLISTENADDRS]：Redis 监听地址列表，最多支持 MAXLISTENADDRS 个地址。
-
-
-char *logfile：Redis 日志文件路径。
-
-
-int daemonize：是否启用后台运行模式。
-
-
-char *pidfile：PID 文件路径。
-
-
-int arch_bits：服务器的架构位数，即 32 位或 64 位。
-
-
-int tcp_backlog：TCP 连接队列的长度。
-
-
-int maxclients：允许同时连接到服务器的最大客户端数量。
-
-
-int maxidletime：允许客户端空闲的最长时间，超过该时间客户端会被自动断开连接。
-
-
-int timeout：客户端发送命令的超时时间。
-
-
-int tcpkeepalive：是否启用 TCP 连接的 keepalive 选项。
-
-
-char *requirepass：Redis 访问密码。
-
-
-int maxmemory：Redis 最大内存限制。
-
-
-int maxmemory_policy：Redis 最大内存限制达到后的数据淘汰策略。
-
-
-int maxmemory_samples：Redis 从键空间中随机选取多少个键来进行数据淘汰。
-
-
-time_t unixtime：服务器的当前时间。
-
-
-int sentinel_mode：是否启用 Sentinel 模式。
-
-
-int active_expire_enabled：是否启用主动过期。
-
-
-int aof_state：AOF 持久化状态，包括 AOF_OFF、AOF_ON、AOF_WAIT_REWRITE 三种状态。
-
-
-int aof_fsync：AOF 持久化时是否执行 fsync 操作。
-
-
-int aof_rewrite_perc：AOF 重写时，如果当前 AOF 文件大小是上次重写后的大小的多少倍，就触发 AOF 重写操作。
-
-
-int aof_rewrite_min_size：AOF 重写最小文件大小。
-
-
-int aof_rewrite_base_size：AOF 重写基准文件大小。
-
-
-int rdb_save_incremental_fsync：RDB 持久化时是否执行增量 fsync 操作。
-
-
-int rdb_child_pid：RDB 持久化时子进程的进程 ID。
-```
