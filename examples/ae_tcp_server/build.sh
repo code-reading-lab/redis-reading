@@ -10,24 +10,22 @@ if [ ! -d "${BIN_DIR}" ]; then
   mkdir "${BIN_DIR}"
 fi
 
+compile_project() {
+  local project_dir=$1
+  local binary_name=$2
+
+  cd "${project_dir}" || exit
+  mkdir -p build
+  cd build || exit
+  cmake ..
+  make
+  cp "${binary_name}" "../${BIN_DIR}/"
+  cd ../..
+  rm -rf "${project_dir}/build"
+}
+
 # 编译 tcp-server
-cd "${SERVER_DIR}"
-mkdir build
-cd build
-cmake ..
-make
-cp "${SERVER_DIR}" "${BIN_DIR}"
-cd ../..
-# 删除 build 目录
-rm -rf "${SERVER_DIR}/build"
+compile_project "${SERVER_DIR}" "tcp-server"
 
 # 编译 tcp-client
-cd "${CLIENT_DIR}"
-mkdir build
-cd build
-cmake ..
-make
-cp "${CLIENT_DIR}" "${BIN_DIR}"
-cd ../..
-# 删除 build 目录
-rm -rf "${CLIENT_DIR}/build"
+compile_project "${CLIENT_DIR}" "tcp-client"
